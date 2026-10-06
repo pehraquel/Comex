@@ -1,12 +1,17 @@
 ﻿
 
+using System.Numerics;
+using System.Security.Cryptography;
+
 Dictionary<string, string> clientes = new();
 Dictionary<string, float> produtos = new();
-Dictionary<string, string> carrinho = new();
+Dictionary<string, List<string>> carrinho = new();
 clientes.Add("123", "Paulo");
 clientes.Add("456", "Eduardo");
 produtos.Add("produto1", 22.49f);
 produtos.Add("produto2", 15.25f);
+carrinho.Add("123", new List<string> { "produto1" });
+carrinho["123"].Add("produto2");
 
 
 void CadastraCliente()
@@ -124,12 +129,8 @@ void FechaCompra()
     string CPF = Console.ReadLine()!;
 
     if (clientes.ContainsKey(CPF))
-    {
-        Console.WriteLine("Digite o nome do Cliente");
-        string nome = Console.ReadLine()!;
-        clientes.Add(CPF, nome);
-        Console.WriteLine($"Usuário {nome} ({CPF}) cadastrado com sucesso.");
-      
+    {        
+        ListaProdutosDeCliente(CPF);
     }
     else
     {
@@ -142,12 +143,48 @@ void ListaProdutosNoCarrinho()
 {
     Console.Clear();
     Console.WriteLine("Lista produtos no carrinho");
-    foreach (KeyValuePair<string, string> cliente in carrinho)
+    foreach (KeyValuePair<string, List<string>> cliente in carrinho)
     {
-        Console.WriteLine($"Nome: {cliente.Key}, Produto: {cliente.Value}");
-
+        foreach (string produto in cliente.Value)
+        {
+            Console.WriteLine($"Nome: {cliente.Value}, Produto: {produto}");
+        }
+           
     }
     VoltarAoMenuPrincipal();
+}
+
+void ListaProdutosDeCliente(string CPF)
+{
+    float total = 0;
+    Console.Clear();
+    Console.WriteLine("Lista produtos no carrinho de ");
+    foreach (KeyValuePair<string, List<string>> cliente in carrinho)
+    {
+        if ((cliente.Key == CPF) || (CPF == null))
+        {
+            foreach (string produto in cliente.Value)
+            {
+                float valor = produtos[produto];
+                total = +valor;
+                Console.WriteLine($"Produto: {produto} Valor: {valor}");
+            }
+       
+        }
+    }
+    Console.WriteLine($"Total do Carrinho: {total}");
+    DadosCartaoUsuario(total);
+}
+
+void DadosCartaoUsuario(float total)
+{
+    // Lógica para cadastrar um cliente
+    Console.Clear();
+    Console.WriteLine("Digite o Cartão do Cliente");
+    string NumeroCartao = Console.ReadLine()!;
+    Console.WriteLine($"Realizando pagamento de R$ {total} no cartão {NumeroCartao}");
+    VoltarAoMenuPrincipal();
+
 }
 
 void AjustarPrecoDeProduto()
@@ -191,7 +228,7 @@ void AdicionaProdutoNoCarrinho()
         string nomeProduto = Console.ReadLine()!;
         if (produtos.ContainsKey(nomeProduto))
         {
-            carrinho.Add(CPF, nomeProduto);
+            carrinho[CPF].Add(nomeProduto);
             string nomeCliente = clientes[CPF];
             Console.WriteLine($"Produto {nomeProduto} de {nomeCliente} ({CPF}) adicionado com sucesso.");
         }
