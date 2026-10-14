@@ -1,15 +1,13 @@
-﻿
+﻿using COMEX;
+using COMEX.Modelos;
 
-using System.Numerics;
-using System.Security.Cryptography;
 
-Dictionary<string, string> clientes = new();
-Dictionary<string, float> produtos = new();
-Dictionary<string, List<string>> carrinho = new();
-clientes.Add("123", "Paulo");
-clientes.Add("456", "Eduardo");
-produtos.Add("produto1", 22.49f);
-produtos.Add("produto2", 15.25f);
+List<Cliente> clientes = new();     List<Produto> produtos = new();
+List<Carrinho> carrinhos = new();
+clientes.Add(new Cliente("Paulo", "123"));
+clientes.Add(new Cliente("Eduardo", "456"));
+produtos.Add(new Produto("produto1") { PrecoUnitario = 10.0 });
+produtos.Add(new Produto("produto2") { PrecoUnitario = 20.0 });
 /*carrinho.Add("123", new List<string>());
 carrinho["123"].Add("produto1");
 carrinho["123"].Add("produto2");
@@ -22,15 +20,20 @@ void CadastraCliente()
     Console.WriteLine("Digite o CPF do Cliente");
     string CPF = Console.ReadLine()!;
 
-    if (!clientes.ContainsKey(CPF))
+    if (!clientes.Any(c => c.CPF.Equals(CPF)))
     {
         Console.WriteLine("Digite o nome do Cliente");
         string nome = Console.ReadLine()!;
-        clientes.Add(CPF, nome);
+        Cliente cliente = new Cliente(nome, CPF);
+        clientes.Add(cliente);
         Console.WriteLine($"Usuário {nome} ({CPF}) cadastrado com sucesso.");
-        VoltarAoMenuPrincipal();
+        
     }
-
+    else
+    {
+        Console.WriteLine($"Usuário {CPF} já cadastrado.");
+    }
+    VoltarAoMenuPrincipal();
 }
 
 void CadastraProduto()
@@ -41,9 +44,16 @@ void CadastraProduto()
     string nome = Console.ReadLine()!;
     Console.WriteLine("Digite o preço do Produto");
     string precoString = Console.ReadLine()!;
-    float preco = float.Parse(precoString);
-    produtos.Add(nome, preco);
-    Console.WriteLine($"Produto {nome} cadastrado com sucesso.");
+    double preco = double.Parse(precoString);
+    if (!produtos.Any(p => p.Nome.Equals(nome)))
+    {
+        produtos.Add(new Produto(nome) { PrecoUnitario = preco }        );
+    }
+    else
+    {
+        Console.WriteLine($"Produto {nome} já cadastrado.");
+    }
+  
     VoltarAoMenuPrincipal();
 }
 
@@ -52,9 +62,9 @@ void ListaClientes()
     // Lógica para exibir a lista de clientes
     Console.Clear();
     Console.WriteLine("Lista de Clientes:");
-    foreach (KeyValuePair<string, string> cliente in clientes)
+    foreach (Cliente cliente in clientes)
     {
-        Console.WriteLine($"Nome: {cliente.Value}, CPF: {cliente.Key}");
+        Console.WriteLine($"Nome: {cliente.Nome}, CPF: {cliente.CPF}");
     }
     VoltarAoMenuPrincipal();
 }
@@ -70,9 +80,9 @@ void ListaProdutos()
     }
     else
     {
-        foreach (KeyValuePair<string, float> produto in produtos)
+        foreach (Produto produto in produtos)
         {
-            Console.WriteLine($"Nome: {produto.Key}, Preço: {produto.Value}");
+            Console.WriteLine($"Nome: {produto.Nome}, Preço: {produto.PrecoUnitario}");
         }
     }
     VoltarAoMenuPrincipal();
@@ -136,7 +146,7 @@ void FechaCompra()
     Console.WriteLine("Digite o CPF do Cliente");
     string CPF = Console.ReadLine()!;
 
-    if (!clientes.ContainsKey(CPF))
+    if (!clientes.Any(c => c.CPF.Equals(CPF)))
     {
         Console.WriteLine("Cliente não cadastrado");
     }
@@ -151,12 +161,12 @@ void ListaProdutosNoCarrinho()
 {
     Console.Clear();
     Console.WriteLine("Lista produtos no carrinho");
-    foreach (KeyValuePair<string, List<string>> cliente in carrinho)
+    foreach (Carrinho carrinho in carrinhos)
     {
-        foreach (string produto in cliente.Value)
+        foreach (Produto produto in carrinho.produtos)
         {
-            string nomeCliente = clientes[cliente.Key];
-            Console.WriteLine($"Nome: {nomeCliente}, Produto: {produto}");
+            string nomeCliente = carrinho.cliente.Nome;
+            Console.WriteLine($"Nome: {nomeCliente}, Produto: {produto.Nome}");
         }
            
     }
@@ -165,21 +175,23 @@ void ListaProdutosNoCarrinho()
 
 void ListaProdutosDeCliente(string CPF)
 {
-    float total = 0;
+    double total = 0;
     Console.Clear();
-    string nomeCliente = clientes[CPF];
+    Cliente cliente = clientes.First(a => a.CPF.Equals(CPF));
+    string nomeCliente = cliente.Nome;
     Console.WriteLine($"Lista produtos no carrinho de {nomeCliente}");
-    if (!carrinho.ContainsKey(CPF) || carrinho[CPF].Count() == 0)
+    if (!carrinhos.Any(c => c.cliente.CPF.Equals(CPF)))
     {
         Console.WriteLine("O carrinho está vazio");
     } 
     else
     {
-        foreach (string p in carrinho[CPF])
+        List<Produto> produtosCarrinho = carrinhos.First(c => c.cliente.CPF.Equals(CPF)).produtos;
+        foreach (Produto p in produtosCarrinho)
         {
-            float valor = produtos[p];
+            double valor = p.PrecoUnitario;
             total += valor;
-            Console.WriteLine($"Produto: {p} Valor: {valor}");
+            Console.WriteLine($"Produto: {p.Nome} Valor: {valor}");
         }
 
         Console.WriteLine($"Total do Carrinho: {total}");
@@ -187,7 +199,7 @@ void ListaProdutosDeCliente(string CPF)
     }
 }
 
-void DadosCartaoUsuario(float total)
+void DadosCartaoUsuario(double total)
 {
     // Lógica para cadastrar um cliente
     if (total > 0)
@@ -204,12 +216,13 @@ void AjustarPrecoDeProduto()
     Console.Clear();
     Console.WriteLine("Qual produto você deseja ajustar o preço?");
     string nomeProduto = Console.ReadLine()!;
-    if (produtos.ContainsKey(nomeProduto))
+    if (produtos.Any(p => p.Nome.Equals(nomeProduto)))
     {
+        Produto p = produtos.First(p => p.Nome.Equals(nomeProduto));
         Console.WriteLine("Digite o novo preço do produto");
         string precoString = Console.ReadLine()!;
-        float preco = float.Parse(precoString);
-        produtos[nomeProduto] = preco;
+        double preco = double.Parse(precoString);
+        p.PrecoUnitario = preco;
         Console.WriteLine($"Preço do produto {nomeProduto} ajustado para {preco}.");
     }
     else
@@ -233,7 +246,7 @@ void AdicionaProdutoNoCarrinho()
     Console.Clear();
     Console.WriteLine("Qual CPF do cliente que está comprando?");
     string CPF = Console.ReadLine()!;
-    if (!clientes.ContainsKey(CPF))
+    if (!clientes.Any(c => c.CPF.Equals(CPF)))
     {
         Console.WriteLine($"Usuário {CPF} não cadastrado.");
     }
@@ -241,20 +254,20 @@ void AdicionaProdutoNoCarrinho()
     {
         Console.WriteLine("Digite o nome do produto que deseja adicionar");
         string nomeProduto = Console.ReadLine()!;
-        if (!produtos.ContainsKey(nomeProduto))
+        if (!produtos.Any(p => p.Nome.Equals(nomeProduto)))
         {
             Console.WriteLine($"Produto {nomeProduto} não cadastrado.");
         }
         else
         {
             //cria a lista do carrinho, caso não exista
-            if (!carrinho.ContainsKey(CPF))
+            if (!carrinhos.Any(c => c.cliente.CPF.Equals(CPF)))
             {
-                carrinho.Add(CPF, new List<string>());
+                carrinhos.Add(new Carrinho { cliente = clientes.First(c => c.CPF.Equals(CPF)), produtos = new List<Produto>() });
             }
 
-            carrinho[CPF].Add(nomeProduto);
-            string nomeCliente = clientes[CPF];
+            carrinhos.First(c => c.cliente.CPF.Equals(CPF)).produtos.Add(produtos.First(p => p.Nome.Equals(nomeProduto)));
+            string nomeCliente = clientes.First(c => c.CPF.Equals(CPF)).Nome;
             Console.WriteLine($"Produto {nomeProduto} de {nomeCliente} ({CPF}) adicionado com sucesso.");
         }
 
@@ -264,6 +277,20 @@ void AdicionaProdutoNoCarrinho()
 }
 
 ExibirMenuDeOpcoes();
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
